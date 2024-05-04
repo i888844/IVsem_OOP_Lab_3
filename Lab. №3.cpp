@@ -1,10 +1,8 @@
 ﻿#include <iostream>
 #include <fstream>
-#include <sstream>
 #include <iterator>
 #include <string>
 #include <cstring>
-#include <cctype>
 #include <iomanip>
 #include <map>
 #include <windows.h>
@@ -73,7 +71,7 @@ public:
 
     Retention(const string _period, const string _type, const double _sum)
     {
-        if (_period.length() < 0)
+        if (_period.length() > 0)
         {
             period = _period;
         }
@@ -140,7 +138,7 @@ public:
         return result;
     }
 
-    double set_sum(const double settable_sum)
+    bool set_sum(const double settable_sum)
     {
         bool result = false;
 
@@ -241,6 +239,7 @@ public:
         service_number = "N/A";
         full_name = "N/A";
         id_code = "N/A";
+        section_code = "N/A";
         profession_code = "N/A";
         period = "N/A";
         salary = 0.0;
@@ -360,6 +359,7 @@ public:
         service_number = src_object.service_number;
         full_name = src_object.full_name;
         id_code = src_object.id_code;
+        section_code = src_object.section_code;
         profession_code = src_object.profession_code;
         period = src_object.period;
         salary = src_object.salary;
@@ -1003,7 +1003,7 @@ public:
     // # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     // # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    void add_employee(const string _service_number, const  string _full_name, const  string _id_code, const  string _section_code, const  string _profession_code, const  string _period, const  double _salary, const  unsigned long int _attendance_in_schedule, const  unsigned long int _accurals_amount, const  unsigned long int _retentions_amount)
+    unsigned long int add_employee(const string _service_number, const  string _full_name, const  string _id_code, const  string _section_code, const  string _profession_code, const  string _period, const  double _salary, const  unsigned long int _attendance_in_schedule, const  unsigned long int _accurals_amount, const  unsigned long int _retentions_amount)
     {
         try
         {
@@ -1023,6 +1023,7 @@ public:
 
             employees = new_employees;
             employees_amount++;
+            return employees_amount - 1;
         }
         catch (const exception& e)
         {
@@ -1033,7 +1034,7 @@ public:
             cerr << "Произошла неизвестная ошибка при добавлении нового сотрудника." << endl;
         }
     }
-
+    
     void output() const
     {
         cout << "Участок: " << section_code << " " << section_name << "\n\n";
@@ -1272,6 +1273,107 @@ public:
         }
     }
 
+    List& operator=(const List& src_object)
+    {
+        if (this != &src_object)
+        {
+            list_name = src_object.list_name;
+            max_sections_amount = src_object.max_sections_amount;
+            sections_amount = src_object.sections_amount;
+
+            unsigned long int i = 0;
+
+            for (i = 0; i < sections_amount; i++)
+            {
+                delete sections[i];
+            }
+            delete[] sections;
+
+            if (sections_amount > 0 && sections_amount <= max_sections_amount)
+            {
+                sections = new Section * [sections_amount];
+                for (i = 0; i < sections_amount; i++)
+                {
+                    sections[i] = new Section(*(src_object.sections[i]));
+                }
+            }
+            else
+            {
+                sections = nullptr;
+            }
+        }
+        return *this;
+    }
+
+    List operator+(const List& src_other)
+    {
+        List result = *this;
+
+        unsigned long int i = 0;
+        unsigned long int j = 0;
+        unsigned long int k = 0;
+        unsigned long int l = 0;
+
+        for (i = 0; i < src_other.sections_amount; i++)
+        {
+            bool found = false;
+            for (j = 0; j < result.sections_amount; j++)
+            {
+                if (result.sections[i]->get_section_code() == src_other.sections[j]->get_section_code() &&
+                    result.sections[i]->get_section_name() == src_other.sections[j]->get_section_name())
+                {
+                    for (k = 0; k < src_other.sections[i]->get_employees_amount(); k++)
+                    {
+                        const unsigned long int index = result.sections[j]->add_employee(
+                            src_other.sections[i]->get_employee_service_number(k),
+                            src_other.sections[i]->get_employee_full_name(k),
+                            src_other.sections[i]->get_employee_id_code(k),
+                            src_other.sections[i]->get_section_code(),
+                            src_other.sections[i]->get_employee_profession_code(k),
+                            src_other.sections[i]->get_employee_period(k),
+                            src_other.sections[i]->get_employee_salary(k),
+                            src_other.sections[i]->get_employee_attendance_in_schedule(k),
+                            src_other.sections[i]->get_employee_accurals_amount(k),
+                            src_other.sections[i]->get_employee_retentions_amount(k)
+                        );
+
+                        for (l = 0; l < src_other.sections[i]->get_employee_accurals_amount(k); l++)
+                        {
+                            result.sections[j]->set_employee_accurals_period(index, l, src_other.sections[i]->get_employee_accural_period(k, l));
+                            result.sections[j]->set_employee_accurals_type(index, l, src_other.sections[i]->get_employee_accural_type(k, l));
+                            result.sections[j]->set_employee_accurals_sum(index, l, src_other.sections[i]->get_employee_accural_sum(k, l));
+                            result.sections[j]->set_employee_accurals_attendance(index, l, src_other.sections[i]->get_employee_accural_attendance(k, l));
+                            result.sections[j]->set_employee_accurals_hours(index, l, src_other.sections[i]->get_employee_accural_hours(k, l));
+                        }
+
+                        for (l = 0; l < src_other.sections[i]->get_employee_retentions_amount(k); l++)
+                        {
+                            result.sections[j]->set_employee_retentions_period(index, l, src_other.sections[i]->get_employee_retention_period(k, l));
+                            result.sections[j]->set_employee_retentions_type(index, l, src_other.sections[i]->get_employee_retention_type(k, l));
+                            result.sections[j]->set_employee_retentions_sum(index, l, src_other.sections[i]->get_employee_retention_sum(k, l));
+                        }
+                    }
+
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                Section* new_section = new Section(*(src_other.sections[i]));
+                Section** new_sections = new Section * [result.sections_amount + 1];
+                for (k = 0; k < result.sections_amount; k++)
+                {
+                    new_sections[k] = result.sections[k];
+                }
+                delete[] result.sections;
+                result.sections = new_sections;
+                result.sections[result.sections_amount++] = new_section;
+            }
+        }
+        return result;
+    }
+
     string get_list_name() const { return list_name; }
     unsigned long int get_sections_amount() const { return sections_amount; }
 
@@ -1303,10 +1405,9 @@ int main()
 {
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
-    cout << "Hello World!\n";
-    List A("C:\\Users\\i8888\\YandexDisk\\Университет\\Работы\\Лабораторные работы\\Объектно-ориентированное программирование\\Лабораторная работа №2\\Lab. №2\\File A.TXT");
-    A.output();
-    List B("C:\\Users\\i8888\\YandexDisk\\Университет\\Работы\\Лабораторные работы\\Объектно-ориентированное программирование\\Лабораторная работа №2\\Lab. №2\\File B.TXT");
-    B.output();
+    List A("C:\\Users\\i8888\\YandexDisk\\Университет\\Работы\\Лабораторные работы\\Объектно-ориентированное программирование\\Лабораторная работа №3\\Lab. №3\\File A.TXT");
+    List B("C:\\Users\\i8888\\YandexDisk\\Университет\\Работы\\Лабораторные работы\\Объектно-ориентированное программирование\\Лабораторная работа №3\\Lab. №3\\File B.TXT");
+    List C = A + B;
+    C.output();
     return 0;
 }
